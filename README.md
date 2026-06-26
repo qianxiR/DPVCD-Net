@@ -64,8 +64,13 @@ T2 ──┘                                    │
 
 ### 依赖安装
 
+建议使用 **Python 3.10**。先按 CUDA 版本安装 PyTorch 2.6.0：
+
 ```powershell
-pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu118
+```
+
+```powershell
 pip install -r requirements.txt
 ```
 
@@ -73,7 +78,10 @@ pip install -r requirements.txt
 
 | 包 | 版本 |
 |---|------|
-| PyTorch | 2.2.0 (CUDA 11.8) |
+| Python | 3.10 |
+| PyTorch | 2.6.0 (CUDA 11.8) |
+| torchvision | 0.21.0 |
+| torchaudio | 2.6.0 |
 | pytorchvideo | 0.1.5 |
 | einops | 0.8.1 |
 | fvcore | 0.1.5 |
