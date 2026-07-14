@@ -71,6 +71,11 @@ pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https
 pip install -r requirements.txt
 ```
 
+Download the X3D-L pretrained backbone weight (Kinetics) and place it at `model/X3D_L.pyth` (the default `--pretrained` path of all scripts):
+```powershell
+curl -L -o .\model\X3D_L.pyth https://dl.fbaipublicfiles.com/pytorchvideo/model_zoo/kinetics/X3D_L.pyth
+```
+
 1. Training the Model.
 
 (1) Prepare the Dataset. Make sure your dataset is structured as described above and register its path in `data/datasets_config.py`. Adjust the `--dataset_name` argument in `scripts/train/train_BCD.py` to point to your dataset. (2) Training Script. To train the DPVCD-Net model, run the following command:
