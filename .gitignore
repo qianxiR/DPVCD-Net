@@ -1,0 +1,76 @@
+# Python 缓存和编译文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+.ipynb_checkpoints/
+
+# 模型权重和检查点（通常很大，不适合提交到Git）
+*.pth
+*.pyth
+*.tar
+*.ckpt
+*.h5
+*.pkl
+*.pickle
+*.safetensors
+last_checkpoint
+
+# 实验输出和结果目录
+exp_*/
+exp/
+exp_new/
+work_dirs/
+inference_results/
+model_list/
+vis_results/
+vis_results_by_image/
+output/
+results/
+
+# 预训练模型和数据集
+checkpoint/
+checkpoints/
+dataesall/
+data/datasets/
+datasets/
+
+# 日志和临时文件
+*.log
+*.txt.bak
+*.tex
+train_val_log.txt
+
+# CSV和JSON结果文件（可选择性保留重要的）
+test_results.csv
+test_results.json
+test_report.csv
+
+# IDE和编辑器配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git相关
+.git/
+*.orig
+
+# 其他临时文件
+*.cache
+*.tmp
+*.temp
+~*
+.cache/
+visresult/
+.history/

@@ -1,42 +1,46 @@
-# DPVCD-Net:面向复杂遥感场景异质目标变化检测的差分先验引导伪视频网络
+# DPVCD-Net
+Difference-Prior-Guided Pseudo-Video Network for Change Detection of Heterogeneous Targets in Complex Remote Sensing Scenes
 
-本仓库是论文 *"DPVCD-Net: A Difference-Prior-Guided Pseudo-Video Network for Change Detection of Heterogeneous Targets in Complex Remote Sensing Scenes"* 的官方 PyTorch 实现。
+# Requirement
+- Python 3.10
+- PyTorch 2.6.0 (CUDA 11.8)
+- torchvision 0.21.0
+- torchaudio 2.6.0
+- pytorchvideo 0.1.5
+- einops 0.8.1
+- fvcore 0.1.5
+- opencv-python 4.11.0
+- scikit-image 0.25.2
+- matplotlib 3.10.1
+- tqdm 4.67.1
 
-## 目录
+# Dataset
+The dataset should consist of bi-temporal image pairs (T1/T2) with pixel-level binary change labels. Each sample provides the pre-event image (T1), the post-event image (T2), and the binary change mask (label, 0/255).
 
-- 数据集准备
-- 训练
-- 评估
-- 推理
-- 引用
-- 致谢
-
-## 数据集准备
-
-下载 GVLM-CD / WHU-CD / LBFD-CD 数据集,并按如下结构组织(三个数据集共用同一父目录):
+For change detection of heterogeneous targets in complex remote sensing scenes, download the [GVLM-CD](https://github.com/zxk688/GVLM), [WHU-CD](https://gpcv.whu.edu.cn/data/building_dataset.html) and LBFD-CD datasets. Organize the dataset into the following structure (three datasets share the same parent directory):
 
 ```
-{dataset_root}/
-├─GVLM-CD
-│  ├─train
-│  │  ├─t1              # T1 时相影像
-│  │  ├─t2              # T2 时相影像
-│  │  └─label           # 二值变化标签 (0/255)
-│  ├─val
-│  │  ├─t1
-│  │  ├─t2
-│  │  └─label
-│  └─test
-│     ├─t1
-│     ├─t2
-│     └─label
-├─WHU-CD
-│  └─...
-└─LBFD-CD
-   └─...
+/E:/rqx/dataes
+  /GVLM-CD
+    /train
+      /t1                  T1 时相影像
+      /t2                  T2 时相影像
+      /label               二值变化标签 (0/255)
+    /val
+      /t1
+      /t2
+      /label
+    /test
+      /t1
+      /t2
+      /label
+  /WHU-CD
+    ...
+  /LBFD-CD
+    ...
 ```
 
-数据集路径在 `data/datasets_config.py` 的 `DATASETS` 列表中注册,例如:
+Then register your dataset path in `data/datasets_config.py`, e.g.:
 
 ```python
 DATASETS = [
@@ -55,81 +59,43 @@ DATASETS = [
 ]
 ```
 
-## 训练
+# Working Example
 
-DPVCD-Net 的总体架构:
-
-```
-T1 ──┐                                    ┌── 变化图
-      ├── [T1, P-frame, T2] ──▶ Encoder ──┤           (X3D-L 3D骨干)
-T2 ──┘                                    │
-                                           ├── DualPathAttention    (CBAM式双路径注意力)
-                                           ├── ShuffleASPP3D        (时空通道混洗ASPP)
-                                           ├── HierarchicalCrossAttn (Swin式分层交叉Transformer)
-                                           └── ChangeDecoder        (渐进上采样解码器)
-```
-
-| 模块 | 说明 |
-|------|------|
-| **Encoder** | X3D-L 3D 卷积骨干,输出 4 个尺度 5D 特征 `(B,C,3,H,W)`,通道数 `[24,48,96,192]` |
-| **DualPathAttention** | 并行(CA×SA)+ 串行(CA→SA)双路径通道/空间注意力 |
-| **ShuffleASPP3D** | 4 分支 3D 空洞卷积(膨胀率 1,3,5,7),带时空通道混洗 |
-| **HierarchicalCrossAttn** | 浅层 cross-attend 深层,深层 cross-attend 全部浅层,Swin 窗口移位 |
-| **ChangeDecoder** | P + \|T1−T2\| 逐级转置卷积上采样,最终 sigmoid 输出 |
-
-### 环境安装
-
-**Step 1**:创建 conda 环境并激活(建议 Python 3.10)。
-
+0. Environment
 ```powershell
+cd DPVCD-Net
 conda create -n dpvcdnet python=3.10
 conda activate dpvcdnet
-```
-
-**Step 2**:克隆仓库。
-
-```powershell
-git clone https://github.com/qianxiR/DPVCD-Net.git
-cd .\DPVCD-Net
-```
-
-**Step 3**:按 CUDA 版本安装 PyTorch 2.6.0,再安装其余依赖。
-
-```powershell
+# PyTorch 2.6.0 + CUDA 11.8
 pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu118
-```
-
-```powershell
 pip install -r requirements.txt
 ```
 
-依赖列表:
+1. Training the Model.
 
-| 包 | 版本 |
-|---|------|
-| Python | 3.10 |
-| PyTorch | 2.6.0 (CUDA 11.8) |
-| torchvision | 0.21.0 |
-| torchaudio | 2.6.0 |
-| pytorchvideo | 0.1.5 |
-| einops | 0.8.1 |
-| fvcore | 0.1.5 |
-| opencv-python | 4.11.0 |
-| scikit-image | 0.25.2 |
-| matplotlib | 3.10.1 |
-| tqdm | 4.67.1 |
-
-### 开始训练
-
+(1) Prepare the Dataset. Make sure your dataset is structured as described above and register its path in `data/datasets_config.py`. Adjust the `--dataset_name` argument in `scripts/train/train_BCD.py` to point to your dataset. (2) Training Script. To train the DPVCD-Net model, run the following command:
 ```powershell
 python .\scripts\train\train_BCD.py --dataset_name GVLM-CD --save_dir .\exp_BCD --batch_size 8
 ```
+Note: The model parameters are set to `img_size=256`, `batch_size=8`, `max_steps=80000`, `learning_rate=2e-4` (Adam, poly decay), which you can modify according to your needs. To switch datasets, losses or training hyperparameters, edit the `ArgumentParser` block in `scripts/train/train_BCD.py`. (3) Model Output. The training artifacts are saved in `{save_dir}/{dataset_name}/`, including `best_model.pth` (weights of the best F1 on the validation set), `checkpoint.pth.tar` (for resuming), `final_model.pth` (final model evaluated on the test set), and `train_val_log.txt` (training/validation log).
 
-默认配置:`img_size=256, batch_size=8, lr=2e-4, Adam, poly 衰减, 80000 steps`。切换数据集、损失或训练超参请编辑 `scripts/train/train_BCD.py` 的 `ArgumentParser` 块。
+2. Testing the Model.
 
-训练产物保存在 `{save_dir}/{dataset_name}/`:`best_model.pth`(验证集最佳 F1 对应权重)、`checkpoint.pth.tar`(断点续训)、`final_model.pth`(测试集最终评估模型)、`train_val_log.txt`(训练验证日志)。
+(1) Prepare the Dataset. Make sure your dataset is structured as described above and adjust the `--file_root` argument in `scripts/test/test_BCD.py` to point to your testing data folder. (2) Testing Script. To evaluate the trained model on the test dataset, run the following command:
+```powershell
+python .\scripts\test\test_BCD.py --file_root "E:\rqx\dataes\GVLM-CD" --model_path .\exp_BCD\GVLM-CD\best_model.pth --batch_size 8 --gpu_id 0
+```
+Note: The `test_BCD.py` script loads the pre-trained model from `--model_path`. You can select the appropriate pre-trained model parameters as input. (3) Model Output. The evaluation metrics (F1, IoU, Kappa, OA, Recall, Precision) are printed to the console, where F1 is the primary metric. With `--save_predictions` enabled, the prediction maps are saved to the `--output_dir` folder:
+```powershell
+python .\scripts\test\test_BCD.py --file_root "E:\rqx\dataes\WHU-CD" --model_path .\exp_BCD\WHU-CD\best_model.pth --save_predictions --output_dir .\predictions --batch_size 8
+```
 
-### 主要训练参数
+Additional Note: To resume training from a checkpoint, run:
+```powershell
+python .\scripts\train\train_BCD.py --dataset_name GVLM-CD --resume .\exp_BCD\GVLM-CD\checkpoint.pth.tar --batch_size 6
+```
+
+The main training parameters are as follows:
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
@@ -143,38 +109,39 @@ python .\scripts\train\train_BCD.py --dataset_name GVLM-CD --save_dir .\exp_BCD 
 | `--gpu_id` | 0 | GPU 设备 ID |
 | `--in_height` / `--in_width` | 256 | 输入图像尺寸 |
 
-### 从检查点恢复训练
+# Acknowledgments
 
-```powershell
-python .\scripts\train\train_BCD.py --dataset_name GVLM-CD --resume .\exp_BCD\GVLM-CD\checkpoint.pth.tar --batch_size 6
+The dataset is constructed based on the GVLM-CD and WHU-CD change detection datasets. Thanks for their excellent works!
+
+```
+@Article{Chen2020,
+AUTHOR = {Chen, Hao and Shi, Zhenwei},
+TITLE = {A Spatial-Temporal Attention-Based Method and a New Dataset for Remote Sensing Image Change Detection},
+JOURNAL = {Remote Sensing},
+VOLUME = {12},
+YEAR = {2020},
+NUMBER = {10},
+ARTICLE-NUMBER = {1662},
+URL = {https://www.mdpi.com/2072-4292/12/10/1662},
+ISSN = {2072-4292},
+DOI = {10.3390/rs12101662}
+}
+
+@article{ZHANG20231,
+title = {Cross-domain landslide mapping from large-scale remote sensing images using prototype-guided domain-aware progressive representation learning},
+journal = {ISPRS Journal of Photogrammetry and Remote Sensing},
+volume = {197},
+pages = {1-17},
+year = {2023},
+issn = {0924-2716},
+doi = {https://doi.org/10.1016/j.isprsjprs.2023.01.018},
+url = {https://www.sciencedirect.com/science/article/pii/S0924271623000242},
+author = {Xiaokang Zhang and Weikang Yu and Man-On Pun and Wenzhong Shi}
+}
 ```
 
-## 评估
-
-```powershell
-python .\scripts\test\test_BCD.py --file_root "E:\rqx\dataes\GVLM-CD" --model_path .\exp_BCD\GVLM-CD\best_model.pth --batch_size 8 --gpu_id 0
-```
-
-评估指标:
-
-- **F1 Score**(主要指标,用于保存最佳模型)
-- **IoU**(交并比)
-- **Kappa**(Kappa 系数)
-- **OA**(总体精度)
-- **Recall**(召回率)
-- **Precision**(精确率)
-
-## 推理
-
-```powershell
-python .\scripts\test\test_BCD.py --file_root "E:\rqx\dataes\WHU-CD" --model_path .\exp_BCD\WHU-CD\best_model.pth --save_predictions --output_dir .\predictions --batch_size 8
-```
-
-开启 `--save_predictions` 后,预测结果保存至 `--output_dir` 指定目录。
-
-## 引用
-
-如果您觉得本仓库对您的研究有帮助,请考虑引用:
+# Citation
+If you use this code for your research, please cite our paper.
 
 ```bibtex
 @article{DPVCDNet202X,
@@ -189,14 +156,4 @@ python .\scripts\test\test_BCD.py --file_root "E:\rqx\dataes\WHU-CD" --model_pat
 }
 ```
 
-## 致谢
-
-感谢以下开源仓库:X3D、pytorchvideo、BIT、ChangeFormer、Swin Transformer。
-
-## License
-
-Copyright (c) qianxiR. All rights reserved. 本仓库代码仅用于学术研究。
-
-## 联系方式
-
-如有任何问题,欢迎提 issue 或联系作者 qianxiR。
+Copyright (c) qianxiR. All rights reserved. 本仓库代码仅用于学术研究。如有任何问题,欢迎提 issue 或联系作者 qianxiR。
